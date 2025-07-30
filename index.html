@@ -2,24 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Fruit Quest! AI Brain</title>
+  <title>Fruit Quest! AI Brain Side-by-Side</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f0fff4;
       margin: 0;
       padding: 20px;
-      text-align: center;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      height: 100vh;
+      box-sizing: border-box;
     }
-    h1 {
-      color: #2e7d32;
+    #gameArea {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 60%;
     }
     #board {
       display: grid;
       grid-template-columns: repeat(8, 60px);
       gap: 5px;
-      margin: 20px auto;
       justify-content: center;
+      user-select: none;
     }
     .tile {
       width: 60px;
@@ -30,21 +37,22 @@
       position: relative;
       cursor: pointer;
       transition: background 0.3s, border 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .tile.revealed {
       background-color: #fff9c4;
     }
     .tile .fruit {
-      position: absolute;
-      bottom: 5px;
-      left: 5px;
-      font-size: 14px;
+      font-size: 24px;
     }
     .highlight {
       border: 3px solid red !important;
     }
     #controls {
-      margin: 20px 0;
+      margin: 15px 0;
+      user-select: none;
     }
     button {
       padding: 10px 20px;
@@ -54,15 +62,25 @@
       margin: 5px;
       font-size: 16px;
       cursor: pointer;
+      border-radius: 5px;
+    }
+    #sidePanel {
+      width: 35%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     #info, #brain, #log {
-      max-width: 800px;
-      margin: 20px auto;
       background: #ffffffdd;
       padding: 15px;
       border-radius: 10px;
       border: 2px solid #81c784;
       text-align: left;
+      box-sizing: border-box;
+      max-height: 30vh;
+      overflow-y: auto;
     }
     #brainMap {
       display: grid;
@@ -77,48 +95,66 @@
       font-size: 12px;
       background: #eee;
       border: 1px solid #ccc;
+      line-height: 30px;
+      user-select: none;
     }
     .scoreboard {
       font-size: 18px;
-      margin-top: 10px;
+      margin-top: 5px;
+      user-select: none;
+    }
+    h2 {
+      margin-top: 0;
+      user-select: none;
+    }
+    #turnInfo {
+      font-weight: bold;
+      font-size: 18px;
+      user-select: none;
     }
   </style>
 </head>
 <body>
-  <h1>🍌 Fruit Quest! + AI Brain 🧠</h1>
+  <div id="gameArea">
+    <h1>🍌 Fruit Quest! + AI Brain 🧠</h1>
 
-  <div id="controls">
-    <button id="nextTurn">Next Turn</button>
-    <button id="aiButton">Let AI Play</button>
-    <p id="turnCounter">Turn: 0</p>
-    <p class="scoreboard">Player Score: <span id="playerScore">0</span></p>
+    <div id="controls">
+      <button id="nextTurn">Next Turn</button>
+      <button id="aiButton">Let AI Play</button>
+      <p id="turnInfo">Turn: 0</p>
+      <p class="scoreboard">Player Score: <span id="playerScore">0</span></p>
+      <p class="scoreboard">AI Score: <span id="aiScore">0</span></p>
+    </div>
+
+    <div id="board"></div>
   </div>
 
-  <div id="board"></div>
+  <div id="sidePanel">
+    <div id="info">
+      <h2>How to Play</h2>
+      <p>Click tiles to reveal fruit trees. Wait for fruit to ripen (green → yellow → red). Red fruit gives points!</p>
+      <p>Press "Next Turn" to pass time. Press "Let AI Play" to let the learning animal explore.</p>
+    </div>
 
-  <div id="info">
-    <h2>How to Play</h2>
-    <p>Click tiles to reveal fruit trees. Wait for fruit to ripen (green → yellow → red). Red fruit gives points!</p>
-    <p>Press "Next Turn" to pass time. Press "Let AI Play" to let the learning animal explore.</p>
-  </div>
+    <div id="brain">
+      <h2>🧠 AI Brain Map (Q-Values)</h2>
+      <p>The AI learns which tiles are most rewarding. Higher numbers = more fruit remembered!</p>
+      <div id="brainMap"></div>
+    </div>
 
-  <div id="brain">
-    <h2>🧠 AI Brain Map (Q-Values)</h2>
-    <p>The AI learns which tiles are most rewarding. Higher numbers = more fruit remembered!</p>
-    <div id="brainMap"></div>
-  </div>
-
-  <div id="log">
-    <h2>📋 AI Learning Log</h2>
-    <pre id="rewardLog" style="white-space: pre-wrap; font-size: 14px;"></pre>
+    <div id="log">
+      <h2>📋 AI Learning Log</h2>
+      <pre id="rewardLog" style="white-space: pre-wrap; font-size: 14px; margin: 0;"></pre>
+    </div>
   </div>
 
   <script>
     const board = document.getElementById('board');
     const brainMap = document.getElementById('brainMap');
     const rewardLog = document.getElementById('rewardLog');
-    const turnCounter = document.getElementById('turnCounter');
+    const turnInfo = document.getElementById('turnInfo');
     const playerScoreEl = document.getElementById('playerScore');
+    const aiScoreEl = document.getElementById('aiScore');
 
     const fruitTypes = ['🍌', '🥭', '🍇', '🍓', '🍍', '🍈'];
     const ripeningStages = ['green', 'yellow', 'red'];
@@ -128,6 +164,7 @@
     const agentMemory = {};
     let turn = 0;
     let playerScore = 0;
+    let aiScore = 0;
 
     const learningRate = 0.6;
 
@@ -158,7 +195,7 @@
           const reward = fruitReward[ripeningStages[stage]];
           playerScore += reward;
           playerScoreEl.textContent = Math.round(playerScore * 10) / 10;
-          tile.innerHTML = `<div class="fruit">${tile.dataset.fruit} (${ripeningStages[stage]})</div>`;
+          tile.innerHTML = `<div class="fruit">${tile.dataset.fruit}</div><div style="font-size:10px;">(${ripeningStages[stage]})</div>`;
         } else {
           tile.textContent = '🌿';
         }
@@ -167,7 +204,7 @@
 
     function advanceTurn() {
       turn++;
-      turnCounter.textContent = "Turn: " + turn;
+      turnInfo.textContent = "Turn: " + turn;
 
       grid.forEach(tile => {
         tile.classList.remove('highlight');
@@ -178,7 +215,7 @@
             tile.dataset.stage = stage;
           }
           if (tile.classList.contains('revealed')) {
-            tile.innerHTML = `<div class="fruit">${tile.dataset.fruit} (${ripeningStages[stage]})</div>`;
+            tile.innerHTML = `<div class="fruit">${tile.dataset.fruit}</div><div style="font-size:10px;">(${ripeningStages[stage]})</div>`;
           }
         }
       });
@@ -206,7 +243,13 @@
           const stage = parseInt(tile.dataset.stage);
           const stageLabel = ripeningStages[stage];
           const reward = fruitReward[stageLabel];
-          tile.innerHTML = `<div class="fruit">${tile.dataset.fruit} (${stageLabel})</div>`;
+          tile.innerHTML = `<div class="fruit">${tile.dataset.fruit}</div><div style="font-size:10px;">(${stageLabel})</div>`;
+
+          // Update AI score on ripe fruit only
+          if (stageLabel === 'red') {
+            aiScore += reward;
+            aiScoreEl.textContent = Math.round(aiScore * 10) / 10;
+          }
 
           // Q-learning update
           const key = chosen.index.toString();
@@ -230,6 +273,7 @@
         cell.classList.add('brain-cell');
         const q = agentMemory[i] ?? 0;
         const intensity = Math.min(255, Math.round(q * 255));
+        // More red means higher Q-value
         cell.style.backgroundColor = `rgb(255, ${255 - intensity}, ${255 - intensity})`;
         cell.textContent = q > 0 ? q.toFixed(1) : '';
         brainMap.appendChild(cell);
