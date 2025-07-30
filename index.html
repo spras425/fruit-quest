@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fruit Quest!</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f5ffe0;
+    }
+    h1 {
+      color: #4caf50;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 60px);
+      grid-template-rows: repeat(8, 60px);
+      gap: 5px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .tile {
+      background-color: #c8e6c9;
+      border: 2px solid #388e3c;
+      width: 60px;
+      height: 60px;
+      font-size: 10px;
+      cursor: pointer;
+      position: relative;
+    }
+    .tile.revealed {
+      background-color: #fff9c4;
+    }
+    .fruit {
+      position: absolute;
+      bottom: 5px;
+      left: 5px;
+      font-size: 14px;
+    }
+    #info {
+      margin-top: 20px;
+    }
+    #nextTurn {
+      padding: 10px 20px;
+      background-color: #66bb6a;
+      border: none;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>🍌 Fruit Quest! 🍍</h1>
+  <div id="board"></div>
+  <div id="info">
+    <p>Click tiles to explore. Find fruit, track ripening!</p>
+    <button id="nextTurn">Next Turn</button>
+    <p id="turnCounter">Turn: 0</p>
+  </div>
+
+  <script>
+    const board = document.getElementById('board');
+    const turnCounter = document.getElementById('turnCounter');
+    let turn = 0;
+
+    const fruitTypes = ['🍌', '🥭', '🍇', '🍓', '🍍', '🍈'];
+    const ripeningStages = ['green', 'yellow', 'red'];
+
+    const grid = [];
+
+    function createBoard() {
+      for (let i = 0; i < 64; i++) {
+        const tile = document.createElement('div');
+        tile.classList.add('tile');
+        tile.dataset.index = i;
+
+        // Randomly assign a fruit with a ripening stage
+        if (Math.random() < 0.25) {
+          tile.dataset.fruit = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
