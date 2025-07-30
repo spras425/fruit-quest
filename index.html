@@ -118,6 +118,52 @@
     document.getElementById('nextTurn').addEventListener('click', advanceTurn);
 
     createBoard();
+    const agentMemory = {}; // Q-table for tiles
+const learningRate = 0.6;
+const discountFactor = 0.9;
+
+// Reward system: red = best
+const fruitReward = {
+  green: 0,
+  yellow: 0.2,
+  red: 1
+};
+
+// Called every time the agent "plays" a turn
+function agentTakeTurn() {
+  const choices = grid.map((tile, index) => {
+    let key = index.toString();
+    let q = agentMemory[key] ?? 0;
+    return { index, q };
+  });
+
+  // Choose best known tile or random (explore)
+  choices.sort((a, b) => b.q - a.q);
+  const explore = Math.random() < 0.3;
+  const chosen = explore ? choices[Math.floor(Math.random() * choices.length)] : choices[0];
+  const tile = grid[chosen.index];
+
+  // Simulate agent visiting the tile
+  if (!tile.classList.contains('revealed')) {
+    revealTile(tile);
+  }
+
+  // Learn from result
+  if (tile.dataset.fruit) {
+    const stage = ripeningStages[parseInt(tile.dataset.stage)];
+    const reward = fruitReward[stage];
+
+    // Q-learning update
+    const key = chosen.index.toString();
+    const oldQ = agentMemory[key] ?? 0;
+    const newQ = oldQ + learningRate * (reward - oldQ);
+    agentMemory[key] = newQ;
+  }
+
+  // Highlight tile as "agent's choice"
+  tile.style.border = "3px solid red";
+}
+
   </script>
 </body>
 </html>
