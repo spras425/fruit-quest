@@ -2,15 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Fruit Quest!</title>
+  <title>Fruit Quest! - Learn with AI</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      background-color: #f5ffe0;
+      background-color: #f0fff4;
+      margin: 0;
+      padding: 20px;
     }
     h1 {
-      color: #4caf50;
+      color: #2e7d32;
     }
     #board {
       display: grid;
@@ -28,6 +30,7 @@
       font-size: 10px;
       cursor: pointer;
       position: relative;
+      transition: border 0.3s;
     }
     .tile.revealed {
       background-color: #fff9c4;
@@ -38,26 +41,61 @@
       left: 5px;
       font-size: 14px;
     }
-    #info {
+    #controls {
       margin-top: 20px;
     }
-    #nextTurn {
+    #nextTurn, #aiButton {
       padding: 10px 20px;
-      background-color: #66bb6a;
+      background-color: #43a047;
       border: none;
       color: white;
       font-size: 16px;
+      margin: 5px;
       cursor: pointer;
+    }
+    #info {
+      max-width: 600px;
+      margin: 30px auto;
+      background: #ffffffcc;
+      padding: 15px;
+      border-radius: 10px;
+      border: 2px solid #81c784;
+    }
+    #info h2 {
+      margin-top: 0;
+    }
+    .highlight {
+      border: 3px solid red !important;
     }
   </style>
 </head>
 <body>
-  <h1>🍌 Fruit Quest! 🍍</h1>
+  <h1>🍌 Fruit Quest! + AI Brain 🌿</h1>
+
   <div id="board"></div>
-  <div id="info">
-    <p>Click tiles to explore. Find fruit, track ripening!</p>
+
+  <div id="controls">
     <button id="nextTurn">Next Turn</button>
+    <button id="aiButton">Let AI Play</button>
     <p id="turnCounter">Turn: 0</p>
+  </div>
+
+  <div id="info">
+    <h2>🧠 How to Play</h2>
+    <p>You’re exploring a jungle to find fruit trees. Click tiles to discover fruit trees and wait for them to ripen!</p>
+    <ul style="text-align: left;">
+      <li><strong>Green</strong>: Not ready</li>
+      <li><strong>Yellow</strong>: Almost ripe</li>
+      <li><strong>Red</strong>: Ripe and tasty! 🍓</li>
+    </ul>
+    <p>Press "Next Turn" to pass time and ripen fruit.</p>
+    <h2>🤖 What Does the AI Do?</h2>
+    <p>The AI pet remembers which tiles had fruit and learns to choose the ones with the highest reward!</p>
+    <ul style="text-align: left;">
+      <li>It explores randomly at first</li>
+      <li>It gets points when it finds red fruit</li>
+      <li>It learns over time where the best fruit is!</li>
+    </ul>
   </div>
 
   <script>
@@ -67,8 +105,12 @@
 
     const fruitTypes = ['🍌', '🥭', '🍇', '🍓', '🍍', '🍈'];
     const ripeningStages = ['green', 'yellow', 'red'];
+    const fruitReward = { green: 0, yellow: 0.2, red: 1 };
 
     const grid = [];
+    const agentMemory = {};
+    const learningRate = 0.6;
+    const discountFactor = 0.9;
 
     function createBoard() {
       for (let i = 0; i < 64; i++) {
@@ -78,7 +120,7 @@
 
         if (Math.random() < 0.25) {
           tile.dataset.fruit = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
-          tile.dataset.stage = 0;
+          tile.dataset.stage = 0; // green
         }
 
         tile.addEventListener('click', () => revealTile(tile));
@@ -89,6 +131,7 @@
 
     function revealTile(tile) {
       tile.classList.add('revealed');
+      tile.classList.remove('highlight');
       if (tile.dataset.fruit) {
         const stage = parseInt(tile.dataset.stage);
         tile.innerHTML = `<div class="fruit">${tile.dataset.fruit} (${ripeningStages[stage]})</div>`;
@@ -102,6 +145,7 @@
       turnCounter.textContent = "Turn: " + turn;
 
       grid.forEach(tile => {
+        tile.classList.remove('highlight');
         if (tile.dataset.fruit) {
           let stage = parseInt(tile.dataset.stage);
           if (stage < 2) {
@@ -115,57 +159,42 @@
       });
     }
 
+    function agentTakeTurn() {
+      const choices = grid.map((tile, index) => {
+        let key = index.toString();
+        let q = agentMemory[key] ?? 0;
+        return { index, q };
+      });
+
+      choices.sort((a, b) => b.q - a.q);
+      const explore = Math.random() < 0.3;
+      const chosen = explore
+        ? choices[Math.floor(Math.random() * choices.length)]
+        : choices[0];
+
+      const tile = grid[chosen.index];
+      if (!tile.classList.contains('revealed')) {
+        revealTile(tile);
+      }
+
+      if (tile.dataset.fruit) {
+        const stage = ripeningStages[parseInt(tile.dataset.stage)];
+        const reward = fruitReward[stage];
+
+        const key = chosen.index.toString();
+        const oldQ = agentMemory[key] ?? 0;
+        const newQ = oldQ + learningRate * (reward - oldQ);
+        agentMemory[key] = newQ;
+      }
+
+      tile.classList.add('highlight');
+    }
+
     document.getElementById('nextTurn').addEventListener('click', advanceTurn);
+    document.getElementById('aiButton').addEventListener('click', agentTakeTurn);
 
     createBoard();
-    setInterval(agentTakeTurn, 2000); // agent plays every 2 sec
-
-    const agentMemory = {}; // Q-table for tiles
-const learningRate = 0.6;
-const discountFactor = 0.9;
-
-// Reward system: red = best
-const fruitReward = {
-  green: 0,
-  yellow: 0.2,
-  red: 1
-};
-
-// Called every time the agent "plays" a turn
-function agentTakeTurn() {
-  const choices = grid.map((tile, index) => {
-    let key = index.toString();
-    let q = agentMemory[key] ?? 0;
-    return { index, q };
-  });
-
-  // Choose best known tile or random (explore)
-  choices.sort((a, b) => b.q - a.q);
-  const explore = Math.random() < 0.3;
-  const chosen = explore ? choices[Math.floor(Math.random() * choices.length)] : choices[0];
-  const tile = grid[chosen.index];
-
-  // Simulate agent visiting the tile
-  if (!tile.classList.contains('revealed')) {
-    revealTile(tile);
-  }
-
-  // Learn from result
-  if (tile.dataset.fruit) {
-    const stage = ripeningStages[parseInt(tile.dataset.stage)];
-    const reward = fruitReward[stage];
-
-    // Q-learning update
-    const key = chosen.index.toString();
-    const oldQ = agentMemory[key] ?? 0;
-    const newQ = oldQ + learningRate * (reward - oldQ);
-    agentMemory[key] = newQ;
-  }
-
-  // Highlight tile as "agent's choice"
-  tile.style.border = "3px solid red";
-}
-
   </script>
 </body>
 </html>
+
