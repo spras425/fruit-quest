@@ -69,7 +69,7 @@
     }
   </style>
 </head>
-<body>
+<body onload="scrollToInfo()">
   <h1>🍌 Fruit Quest! + AI Brain 🌿</h1>
 
   <div id="board"></div>
@@ -89,6 +89,7 @@
       <li><strong>Red</strong>: Ripe and tasty! 🍓</li>
     </ul>
     <p>Press "Next Turn" to pass time and ripen fruit.</p>
+
     <h2>🤖 What Does the AI Do?</h2>
     <p>The AI pet remembers which tiles had fruit and learns to choose the ones with the highest reward!</p>
     <ul style="text-align: left;">
@@ -190,6 +191,13 @@
       tile.classList.add('highlight');
     }
 
+    function scrollToInfo() {
+      const infoSection = document.getElementById("info");
+      if (infoSection) {
+        infoSection.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+
     document.getElementById('nextTurn').addEventListener('click', advanceTurn);
     document.getElementById('aiButton').addEventListener('click', agentTakeTurn);
 
@@ -197,3 +205,4 @@
   </script>
 </body>
 </html>
+
