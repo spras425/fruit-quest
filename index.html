@@ -118,6 +118,8 @@
     document.getElementById('nextTurn').addEventListener('click', advanceTurn);
 
     createBoard();
+    setInterval(agentTakeTurn, 2000); // agent plays every 2 sec
+
     const agentMemory = {}; // Q-table for tiles
 const learningRate = 0.6;
 const discountFactor = 0.9;
