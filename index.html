@@ -76,6 +76,48 @@
         tile.classList.add('tile');
         tile.dataset.index = i;
 
-        // Randomly assign a fruit with a ripening stage
         if (Math.random() < 0.25) {
           tile.dataset.fruit = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
+          tile.dataset.stage = 0;
+        }
+
+        tile.addEventListener('click', () => revealTile(tile));
+        board.appendChild(tile);
+        grid.push(tile);
+      }
+    }
+
+    function revealTile(tile) {
+      tile.classList.add('revealed');
+      if (tile.dataset.fruit) {
+        const stage = parseInt(tile.dataset.stage);
+        tile.innerHTML = `<div class="fruit">${tile.dataset.fruit} (${ripeningStages[stage]})</div>`;
+      } else {
+        tile.innerHTML = '🌿';
+      }
+    }
+
+    function advanceTurn() {
+      turn++;
+      turnCounter.textContent = "Turn: " + turn;
+
+      grid.forEach(tile => {
+        if (tile.dataset.fruit) {
+          let stage = parseInt(tile.dataset.stage);
+          if (stage < 2) {
+            stage++;
+            tile.dataset.stage = stage;
+          }
+          if (tile.classList.contains('revealed')) {
+            tile.innerHTML = `<div class="fruit">${tile.dataset.fruit} (${ripeningStages[stage]})</div>`;
+          }
+        }
+      });
+    }
+
+    document.getElementById('nextTurn').addEventListener('click', advanceTurn);
+
+    createBoard();
+  </script>
+</body>
+</html>
